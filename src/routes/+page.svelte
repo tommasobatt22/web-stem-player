@@ -65,7 +65,7 @@
 </script>
 
 <div class="flex h-svh flex-col justify-center items-center">
-  <div class="w-4/5 md:w-2/5 bg-[#e9e9e9] rounded-lg p-5 shadow-xl shadow-slate-500/20">
+  <div class="w-[90%] md:w-2/5 bg-[#e9e9e9] rounded-lg p-5 shadow-xl shadow-slate-500/20">
 
     <!-- Waveform / song selector -->
     <div class="w-full bg-[#0a0a0a] h-48 rounded-lg flex flex-col items-center justify-center px-5 gap-3">
