@@ -115,7 +115,7 @@
         <div class="flex flex-col items-center mb-5">
 
           <!-- Fader verticale -->
-          <div class="flex justify-center items-center h-32 mb-3">
+          <div class="flex justify-center items-center md:h-32 mb-3">
             <input
               type="range"
               min="0" max="100" value={volumes[name]}
@@ -123,7 +123,7 @@
               name="stem-{name}"
               on:input={(e) => handleVolume(name, e)}
               style="--stem-color:{stemColors[name]}"
-              class="-rotate-90 w-24"
+              class="md:-rotate-90 w-24"
               disabled={!$activeSong || loading}
             />
           </div>
