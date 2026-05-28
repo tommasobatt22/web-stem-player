@@ -28,10 +28,10 @@
   let loading = false;
 
     const stemColors = {
-        vocals: '#ff3c6e',
-        drums:  '#357DED',
-        bass:   '#0DAB76',
-        other:  '#ffaa00',
+        vocals: '#FA7412',
+        drums:  '#5700BB',
+        bass:   '#00DB4D',
+        other:  '#575757',
     };
 
     const rangeBackgrounds = {
@@ -101,8 +101,8 @@
     <div
       class="w-full bg-[#0a0a0a] h-64 rounded-lg flex flex-row items-center justify-between"
     >
-      <div class="h-full w-64 p-2">
-        <div class="h-full w-full bg-cover bg-center rounded-lg flex items-end p-2"
+      <div class="h-full w-64 p-2 hidden md:block">
+        <div class="h-full w-full bg-cover bg-center rounded-lg flex items-end p-2 "
           style="background-image: url('/src/lib/assets/img/asap.png');"
         >
         {#if $activeSong}
@@ -132,7 +132,7 @@
           {/if}
         </div>
         {#if $activeSong && !loading}
-          <div class="w-full relative h-[80px] py-3">
+          <div class="w-full relative h-[80px] m-3">
             {#each stemList as name, i}
               <StemWaveform
                 url={$activeSong.stems[name]}
@@ -169,12 +169,11 @@
     </div>
 
     <!-- Fader mixer -->
-    <div class="flex justify-between mt-2 items-center h-80  ">
-      <div class="w-24 bg-black h-full rounded-lg flex flex-row md:flex-col">
+    <div class="flex justify-between mt-2 items-center h-auto md:h-80 flex-col md:flex-row ">
+      <div class="w-full md:w-24 bg-black h-full rounded-lg flex flex-row md:flex-col min-h-20 mb-2 md:mb-0">
 
       </div>
-      <div>
-        <div class="flex justify-center gap-3 pb-2">
+        <div class="flex justify-center gap-3 order-3 md:order-2 py-5">
           {#if $isPlaying}
             <button
               on:click={handlePause}
@@ -193,11 +192,11 @@
             </button>
           {/if}
         </div>
-      </div>
-      <div class="flex items-center justify-around flex-row flex-wrap md:flex-nowrap w-96 h-full rounded-xl p-5"
+
+      <div class="flex items-center justify-around md:flex-row flex-col flex-wrap md:flex-nowrap w-full md:w-96 md:h-full rounded-xl p-10"
       style="background-image: linear-gradient(135deg, #f8f8f8, #A8A8A8 150%);">
         {#each stemList as name}
-          <div class="flex flex-col items-center h-full w-1/4">
+          <div class="flex flex-col items-center md:h-full w-1/4 py-2">
             <!-- Fader verticale -->
             <div class="flex justify-center items-center h-full mb-3">
               <div class="md:-rotate-90 bg-[#d9d9d934] rounded-full flex justify-center p-2 range-shadow ">
