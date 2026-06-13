@@ -10,7 +10,6 @@
   onMount(async () => {
     const WaveSurfer = (await import('wavesurfer.js')).default;
 
-    // Se il componente è già stato distrutto nel frattempo, non fare nulla
     if (destroyed || !container) return;
 
     wavesurfer = WaveSurfer.create({
