@@ -135,9 +135,8 @@
     class="w-[90%] md:w-4/5 rounded-lg p-3 border border-slate-300 bg-[#D6D6D6]"
     style="box-shadow: 0 20px 25px -5px rgb(100 116 139 / 0.2), 0 8px 10px -6px rgb(100 116 139 / 0.2), inset 0 0 30px 5px rgb(255 255 255 / 0.4);"
   >
-    <div
-      class="w-full bg-[#0a0a0a] h-32 md:h-64 rounded-lg flex flex-row items-center justify-between"
-    >
+    <!-- contenitore stems -->
+    <div class="w-full bg-[#0a0a0a] h-64 rounded-lg flex flex-row items-center justify-between">
       <div class="h-full w-64 p-2 hidden md:block">
         <div
           class="h-full w-full bg-cover bg-center rounded-lg flex items-end p-2"
@@ -210,9 +209,9 @@
     </div>
 
     <!-- Fader mixer -->
-    <div
-      class="flex justify-between mt-2 items-center h-auto md:h-80 flex-col md:flex-row"
-    >
+    <div class="flex justify-between mt-2 items-center h-auto md:h-80 flex-col md:flex-row">
+
+      <!-- contenitore canzoni -->
       <div class="w-full md:w-24 bg-black h-full rounded-lg overflow-hidden">
         <div class="text-center text-slate-300 pb-2">
           <span class="bitcount-single">Queue</span>
@@ -229,7 +228,9 @@
           {/each}
         </div>
       </div>
-      <div class="flex gap-3 order-3 md:order-2 h-full flex-grow items-center justify-center mt-4 w-full md:w-auto">
+
+      <div class="flex gap-3 order-3 md:order-2 h-auto md:h-full w-full md:w-auto flex-grow items-center justify-center mt-4
+      absolute md:static bottom-0">
         <div class="h-24 md:w-72 w-full flex justify-center rounded-lg overflow-hidden gap-1" id="button-container">
           <div class="w-1/3 h-full sound-button flex justify-center items-center" id="rec-button">
             <div class="size-6 rounded-full bg-red-500"></div>
