@@ -10,6 +10,9 @@
     initAudioContext,
     seekTo,
     getDuration,
+    toggleLoopPoint,
+    getLoopState,
+    clearLoop,
   } from "$lib/AudioEngine.js";
   import { activeSong, isPlaying } from "$lib/stores.js";
   import StemWaveform from "$lib/StemWaveform.svelte";
@@ -26,6 +29,41 @@
   let volumes = { vocals: 50, drums: 50, bass: 50, other: 50 };
   let mutes = { vocals: false, drums: false, bass: false, other: false };
   let loading = false;
+
+  // --- Loop A-B ---
+  let loopState = { loopStart: null, loopEnd: null, loopActive: false, pending: false };
+
+  // Stile reattivo dell'overlay: calcolato ogni volta che loopState cambia.
+  // Quando c'è solo il punto A mostriamo una sottile linea verticale come segnaposto;
+  // quando c'è anche il punto B mostriamo il rettangolo pieno tra i due punti.
+  $: loopOverlayStyle = (() => {
+    const duration = getDuration();
+    if (!duration) return null;
+
+    const { loopStart, loopEnd, pending, loopActive } = loopState;
+
+    if (loopStart === null) return null;
+
+    if (pending) {
+      // Solo punto A: linea verticale per indicare dove inizia
+      const leftPct = (loopStart / duration) * 100;
+      return `left:${leftPct}%; width:1px; top:0; bottom:0; position:absolute; background:#FA7412; opacity:0.8; pointer-events:none; z-index:20;`;
+    }
+
+    if (loopActive && loopEnd !== null) {
+      // Punto A + B: rettangolo tra i due punti
+      const leftPct  = (loopStart / duration) * 100;
+      const widthPct = ((loopEnd - loopStart) / duration) * 100;
+      return `left:${leftPct}%; width:${widthPct}%; top:0; bottom:0; position:absolute; background:rgba(255,255,255,0.12); border-left:1px solid #FA7412; border-right:2px solid #FA7412; pointer-events:none; z-index:20;`;
+    }
+
+    return null;
+  })();
+
+  function handleLoopToggle() {
+    if (!$activeSong || loading) return;
+    loopState = toggleLoopPoint();
+  }
 
   const stemColors = {
     vocals: "#FA7412",
@@ -46,8 +84,7 @@
   async function selectSong(song) {
     initAudioContext();
     loading = true;
-    await loadSong(song);
-    // Recupera gli HTMLAudioElement dopo il caricamento
+    await loadSong(song);  // clearLoop() è già chiamato dentro loadSong
     stemAudios = {
       vocals: getStemAudio("vocals"),
       drums: getStemAudio("drums"),
@@ -55,6 +92,7 @@
       other: getStemAudio("other"),
     };
     activeSong.set(song);
+    loopState = getLoopState();  // sincronizza la UI (tutto null/false)
     loading = false;
   }
 
@@ -67,7 +105,7 @@
 
     const val = Number(e.target.value);
     volumes[name] = val;
-    setStemVolume(name, val);
+    setStemVolume(name, val); 
   }
 
   function handleSeek(e) {
@@ -124,7 +162,7 @@
       <!-- Waveform -->
       <div class="relative z-10 flex flex-col items-center flex-grow px-5">
         {#if $activeSong && !loading}
-          <div class="w-full relative h-[80px] m-3">
+          <div class="w-full relative m-3">
             {#each stemList as name, i}
               <StemWaveform
                 url={$activeSong.stems[name]}
@@ -134,6 +172,30 @@
                 interactive={i === stemList.length - 1}
               />
             {/each}
+
+            <!-- Overlay loop A-B: linea singola (punto A) o rettangolo (A→B) -->
+            {#if loopOverlayStyle}
+              <div style={loopOverlayStyle}></div>
+            {/if}
+
+            <!-- Etichette A / B agli estremi dell'overlay -->
+            {#if loopState.loopStart !== null}
+              {@const duration = getDuration()}
+              {@const leftPct = duration ? (loopState.loopStart / duration) * 100 : 0}
+              <span
+                class="absolute top-0 text-[9px] font-bold text-orange-400 select-none pointer-events-none"
+                style="left:calc({leftPct}% + 3px); z-index:21; line-height:1;"
+              >A</span>
+            {/if}
+            {#if loopState.loopActive && loopState.loopEnd !== null}
+              {@const duration = getDuration()}
+              {@const rightPct = duration ? (loopState.loopEnd / duration) * 100 : 0}
+              <span
+                class="absolute top-0 text-[9px] font-bold text-orange-400 select-none pointer-events-none"
+                style="left:calc({rightPct}% - 9px); z-index:21; line-height:1;"
+              >B</span>
+            {/if}
+
             <div
               class="absolute inset-0 z-10 cursor-pointer"
               on:click={handleSeek}
@@ -172,15 +234,47 @@
           <div class="w-1/3 h-full sound-button flex justify-center items-center" id="rec-button">
             <div class="size-6 rounded-full bg-red-500"></div>
           </div>
+          {#if $isPlaying}
           <!-- svelte-ignore a11y_click_events_have_key_events -->
           <!-- svelte-ignore a11y_no_static_element_interactions -->
           <div class="w-1/3 h-full sound-button flex justify-center items-center" id="pause-button" on:click={handlePause}>
             <div class="bg-center bg-cover size-8" style="background-image: url('/src/lib/assets/img/pause-icon.svg');"></div>
           </div>
+          {:else}
           <!-- svelte-ignore a11y_click_events_have_key_events -->
           <!-- svelte-ignore a11y_no_static_element_interactions -->
           <div class="w-1/3 h-full sound-button flex justify-center items-center" id="play-button" on:click={handlePlay}>
-          <div class="bg-center bg-cover size-8" style="background-image: url('/src/lib/assets/img/play-icon.svg');"></div>
+            <div class="bg-center bg-cover size-8" style="background-image: url('/src/lib/assets/img/play-icon.svg');"></div>
+          </div>
+          {/if}
+          <!-- svelte-ignore a11y_click_events_have_key_events -->
+          <!-- svelte-ignore a11y_no_static_element_interactions -->
+          <div
+            class="w-1/3 h-full sound-button flex flex-col justify-center items-center gap-1 cursor-pointer"
+            id="loop-button"
+            on:click={handleLoopToggle}
+            title={loopState.loopActive
+              ? 'Loop attivo — clicca per disattivare'
+              : loopState.pending
+                ? 'Punto A impostato — clicca per impostare il punto B'
+                : 'Clicca per impostare il punto A del loop'}
+          >
+            <!-- Icona: cerchio con simbolo ∞ o lettera dello stato -->
+            <div
+              class="size-7 rounded-full border-2 flex items-center justify-center transition-all duration-200"
+              style="border-color:{loopState.loopActive ? '#00DB4D' : loopState.pending ? '#FA7412' : '#575757'};
+                     background-color:{loopState.loopActive ? '#00DB4D22' : 'transparent'};"
+            >
+              <span
+                class="text-[10px] font-bold"
+                style="color:{loopState.loopActive ? '#00DB4D' : loopState.pending ? '#FA7412' : '#575757'};"
+              >{loopState.loopActive ? '⟳' : loopState.pending ? 'A' : '∞'}</span>
+            </div>
+            <!-- Label contestuale minuscola -->
+            <span
+              class="text-[8px] font-mono tracking-widest"
+              style="color:{loopState.loopActive ? '#00DB4D' : loopState.pending ? '#FA7412' : '#575757'};"
+            >{loopState.loopActive ? 'LOOP' : loopState.pending ? 'SET B' : 'LOOP'}</span>
           </div>
         </div>
       </div>

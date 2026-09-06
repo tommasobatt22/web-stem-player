@@ -14,7 +14,7 @@
 
     wavesurfer = WaveSurfer.create({
       container,
-      height: 80,
+      height: 50,
       waveColor: color,
       progressColor: color,
       cursorColor: '#fff',
@@ -37,5 +37,5 @@
 
 <div
   bind:this={container}
-  class="absolute inset-0 opacity-60"
+  class="opacity-80"
 ></div>
