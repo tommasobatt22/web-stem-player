@@ -7,6 +7,14 @@
   let wavesurfer = null;
   let destroyed = false;
 
+  const mediaQuery = typeof window !== 'undefined' ? window.matchMedia('(min-width: 768px)') : null;
+  const getHeight = () => (mediaQuery?.matches ? 50 : 30);
+
+  const handleBreakpointChange = () => {
+    wavesurfer?.setOptions({ height: getHeight() });
+  };
+
+
   onMount(async () => {
     const WaveSurfer = (await import('wavesurfer.js')).default;
 
@@ -14,7 +22,7 @@
 
     wavesurfer = WaveSurfer.create({
       container,
-      height: 50,
+      hheight: getHeight(),
       waveColor: color,
       progressColor: color,
       cursorColor: '#fff',
@@ -30,6 +38,7 @@
 
   onDestroy(() => {
     destroyed = true;
+    mediaQuery?.addEventListener('change', handleBreakpointChange);
     wavesurfer?.destroy();
     wavesurfer = null;
   });

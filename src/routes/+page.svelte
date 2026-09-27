@@ -212,7 +212,7 @@
     <div class="flex justify-between mt-2 items-center h-auto md:h-80 flex-col md:flex-row">
 
       <!-- contenitore canzoni -->
-      <div class="w-full md:w-24 bg-black h-full rounded-lg overflow-hidden">
+      <div class="w-full md:w-24 bg-black h-full rounded-lg overflow-hidden md:block hidden">
         <div class="text-center text-slate-300 pb-2">
           <span class="bitcount-single">Queue</span>
         </div>
