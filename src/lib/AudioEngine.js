@@ -5,7 +5,11 @@ let audioCtx = null;
 let loopStart = null;   // punto A (secondi)
 let loopEnd = null;     // punto B (secondi)
 let loopActive = false; // true quando A e B sono entrambi settati e il loop è attivo
-let loopTimeUpdateHandler = null; // riferimento all'handler attaccato all'audio "master"
+let loopRafId = null;   // id del requestAnimationFrame che controlla il punto B
+
+// --- Griglia ritmica del brano corrente ---
+let songBpm = null;     // battiti al minuto (quarti)
+let songOffset = 0;     // secondi del primo battito (downbeat) nel file
 
 export function initAudioContext() {
   if (!audioCtx) {
@@ -19,6 +23,10 @@ export async function loadSong(song) {
 
   // Reset del loop ogni volta che si cambia canzone
   clearLoop();
+
+  // Griglia ritmica: bpm e offset del primo battito (definiti in songs.js)
+  songBpm = Number(song.bpm) > 0 ? Number(song.bpm) : null;
+  songOffset = Number(song.offset) || 0;
 
   // Distruggi i nodi precedenti correttamente
   Object.values(stems).forEach(s => {
@@ -55,9 +63,6 @@ export async function loadSong(song) {
   });
 
   await Promise.all(loadPromises);
-
-  // Riattacca il listener di loop sul nuovo stem "master"
-  attachLoopWatcher();
 }
 
 export function play() {
@@ -115,98 +120,108 @@ export function seekTo(time) {
   });
 }
 
+
 // ---------------------------------------------------------------------------
-// Loop A-B
+// Loop A-B agganciato ai quarti
 // ---------------------------------------------------------------------------
 
-/**
- * Trova lo stem "master" (il primo disponibile) che usiamo come riferimento
- * per leggere currentTime e per ascoltare l'evento 'timeupdate'.
- */
 function getMasterAudio() {
   return Object.values(stems)[0]?.audio ?? null;
 }
 
-/**
- * Attacca (o ri-attacca) il listener 'timeupdate' che controlla se siamo
- * arrivati al punto B del loop, e in caso affermativo riporta tutti gli
- * stem al punto A.
- */
-function attachLoopWatcher() {
-  const master = getMasterAudio();
-  if (!master) return;
+/** Durata di un quarto in secondi, o null se il brano non ha un BPM. */
+export function getBeatDuration() {
+  return songBpm ? 60 / songBpm : null;
+}
 
-  if (loopTimeUpdateHandler) {
-    master.removeEventListener('timeupdate', loopTimeUpdateHandler);
-  }
-
-  loopTimeUpdateHandler = () => {
-    if (!loopActive || loopStart === null || loopEnd === null) return;
-    if (master.currentTime >= loopEnd) {
-      seekTo(loopStart);
-    }
-  };
-
-  master.addEventListener('timeupdate', loopTimeUpdateHandler);
+/** Arrotonda un tempo al quarto più vicino della griglia del brano. */
+function snapToBeat(time) {
+  const beat = getBeatDuration();
+  if (!beat) return time;
+  const n = Math.round((time - songOffset) / beat);
+  return Math.max(0, songOffset + n * beat);
 }
 
 /**
- * Da chiamare quando l'utente preme il bottone di loop.
- * - 1° click (nessun punto settato): marca il punto A = currentTime
- * - 2° click (solo A settato): marca il punto B = currentTime e attiva il loop
- *   (se B < A, i due valori vengono scambiati automaticamente)
- * - 3° click (loop attivo): disattiva e resetta il loop
- *
- * Ritorna lo stato corrente del loop, utile per aggiornare la UI.
+ * Controllo del punto B a ogni frame (~60 volte al secondo).
+ * L'evento 'timeupdate' scatta solo ~4 volte al secondo e faceva sforare
+ * il punto B fino a 250 ms: con un loop a tempo si sentiva subito.
+ */
+function startLoopWatcher() {
+  stopLoopWatcher();
+  const tick = () => {
+    const master = getMasterAudio();
+    if (loopActive && master && master.currentTime >= loopEnd) {
+      // Riporta indietro di quanto abbiamo sforato, così il tempo resta in griglia
+      const overshoot = master.currentTime - loopEnd;
+      const length = loopEnd - loopStart;
+      seekTo(loopStart + (overshoot < length ? overshoot : 0));
+    }
+    loopRafId = requestAnimationFrame(tick);
+  };
+  loopRafId = requestAnimationFrame(tick);
+}
+
+function stopLoopWatcher() {
+  if (loopRafId !== null) cancelAnimationFrame(loopRafId);
+  loopRafId = null;
+}
+
+/**
+ * - 1° click: punto A = quarto più vicino al tempo corrente
+ * - 2° click: punto B = A + un numero intero di quarti (almeno 1),
+ *   arrotondato a quanto l'utente ha effettivamente ascoltato
+ * - 3° click: disattiva il loop
  */
 export function toggleLoopPoint() {
-  const master = getMasterAudio();
-  const currentTime = master?.currentTime ?? 0;
+  const currentTime = getMasterAudio()?.currentTime ?? 0;
 
   if (loopActive) {
-    // Era già attivo → l'utente vuole disattivarlo
     clearLoop();
     return getLoopState();
   }
 
   if (loopStart === null) {
-    // Primo click: imposta il punto A
-    loopStart = currentTime;
-  } else {
-    // Secondo click: imposta il punto B e attiva il loop
-    loopEnd = currentTime;
-
-    if (loopEnd < loopStart) {
-      [loopStart, loopEnd] = [loopEnd, loopStart];
-    }
-
-    // Evita un loop di durata nulla (o quasi)
-    if (loopEnd - loopStart < 0.1) {
-      clearLoop();
-      return getLoopState();
-    }
-
-    loopActive = true;
-    attachLoopWatcher();
+    loopStart = snapToBeat(currentTime);
+    return getLoopState();
   }
 
+  let start = loopStart;
+  let end = currentTime;
+  if (end < start) [start, end] = [snapToBeat(end), start];
+
+  const beat = getBeatDuration();
+  if (beat) {
+    const beats = Math.max(1, Math.round((end - start) / beat));
+    end = start + beats * beat;
+  } else if (end - start < 0.1) {
+    // Senza BPM non c'è griglia: evitiamo solo i loop di durata quasi nulla
+    clearLoop();
+    return getLoopState();
+  }
+
+  loopStart = start;
+  loopEnd = Math.min(end, getDuration() || end);
+  loopActive = true;
+  startLoopWatcher();
   return getLoopState();
 }
 
-/** Resetta completamente il loop (punti e stato attivo). */
 export function clearLoop() {
+  stopLoopWatcher();
   loopStart = null;
   loopEnd = null;
   loopActive = false;
 }
 
-/** Stato corrente del loop, utile per la UI. */
 export function getLoopState() {
+  const beat = getBeatDuration();
   return {
     loopStart,
     loopEnd,
     loopActive,
-    // 'pending' = il punto A è stato settato ma manca il punto B
     pending: loopStart !== null && loopEnd === null && !loopActive,
+    // numero di quarti del loop, utile da mostrare nella UI
+    beats: loopActive && beat ? Math.round((loopEnd - loopStart) / beat) : null,
   };
 }

@@ -275,7 +275,9 @@
             <span
               class="text-[8px] font-mono tracking-widest"
               style="color:{loopState.loopActive ? '#00DB4D' : loopState.pending ? '#FA7412' : '#575757'};"
-            >{loopState.loopActive ? 'LOOP' : loopState.pending ? 'SET B' : 'LOOP'}</span>
+            >{loopState.loopActive
+                ? (loopState.beats ? `${loopState.beats} ♩` : 'LOOP')
+                : loopState.pending ? 'SET B' : 'LOOP'}</span>
           </div>
         </div>
       </div>
