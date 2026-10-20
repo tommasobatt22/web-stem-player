@@ -8,21 +8,26 @@
   let destroyed = false;
 
   const mediaQuery = typeof window !== 'undefined' ? window.matchMedia('(min-width: 768px)') : null;
-  const getHeight = () => (mediaQuery?.matches ? 50 : 30);
+  const getHeight = () => (mediaQuery?.matches ? 50 : 40);
+
+  let height = $state(getHeight());
 
   const handleBreakpointChange = () => {
-    wavesurfer?.setOptions({ height: getHeight() });
+    height = getHeight();
+    wavesurfer?.setOptions({ height });
   };
 
 
   onMount(async () => {
+    mediaQuery?.addEventListener('change', handleBreakpointChange);
+
     const WaveSurfer = (await import('wavesurfer.js')).default;
 
     if (destroyed || !container) return;
 
     wavesurfer = WaveSurfer.create({
       container,
-      hheight: getHeight(),
+      height,
       waveColor: color,
       progressColor: color,
       cursorColor: '#fff',
@@ -33,12 +38,12 @@
       normalize: true,
       media: audio,
     });
-    
+
   });
 
   onDestroy(() => {
     destroyed = true;
-    mediaQuery?.addEventListener('change', handleBreakpointChange);
+    mediaQuery?.removeEventListener('change', handleBreakpointChange);
     wavesurfer?.destroy();
     wavesurfer = null;
   });
@@ -47,4 +52,5 @@
 <div
   bind:this={container}
   class="opacity-80"
+  style="height: {height}px"
 ></div>

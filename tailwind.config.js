@@ -5,7 +5,8 @@ export default {
   theme: {
     extend: {
       colors: {
-        'bg-color': '#E8E8E8'
+        'bg-color': '#E8E8E8',
+        'custom-black': '#1D1D1D'
       },
       fontFamily: {
         base: 'Inconsolata, monospace'

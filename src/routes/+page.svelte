@@ -130,9 +130,10 @@
   }
 </script>
 
-<div class="flex h-svh flex-col justify-center items-center">
+<div class="flex h-svh flex-col md:justify-center items-center relative">
+ 
   <div
-    class="w-[90%] md:w-4/5 rounded-lg p-3 border border-slate-300 bg-[#D6D6D6]"
+    class="w-[90%] md:w-4/5 rounded-lg p-3 border border-slate-300 bg-[#D6D6D6] mt-[10%] md:mt-0"
     style="box-shadow: 0 20px 25px -5px rgb(100 116 139 / 0.2), 0 8px 10px -6px rgb(100 116 139 / 0.2), inset 0 0 30px 5px rgb(255 255 255 / 0.4);"
   >
     <!-- contenitore stems -->
@@ -281,7 +282,11 @@
           </div>
         </div>
       </div>
-
+      <div class="flex md:hidden gap-3 justify-center items-center w-full my-2">
+        <div class="rounded-md bg-gradient-to-r bg-[#f6934c] pill px-1">
+          <span class="bitcount-single text-custom-black">Select a song</span>
+        </div>
+      </div>
       <div
         class="flex items-center justify-around md:flex-row flex-col flex-wrap md:flex-nowrap w-full md:w-96 md:h-full rounded-xl p-2 order-2 md:order-3 mt-4"
         style="background-image: linear-gradient(135deg, #f8f8f8, #A8A8A8 150%);"
